@@ -4,7 +4,6 @@
   - [Overview](#overview)
   - [tips](#tips)
   - [⚡️ quick start](#️-quick-start)
-    - [install](#install)
     - [What exactly does the above code do?](#what-exactly-does-the-above-code-do)
   - [citation](#citation)
 
@@ -23,8 +22,6 @@ The reproduce directory is only used to reproduce the paper, and is not recommen
 It is recommended for you to use LoRA-GA through peft(The usage is in the [quick start](#⚡️-quick-start) below.)
 
 ## ⚡️ quick start
-
-### install
 
 1. install peft
    ```bash
