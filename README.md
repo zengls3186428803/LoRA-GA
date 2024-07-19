@@ -18,7 +18,8 @@ eigenvectors of the gradient matrix, as opposed to random initialization with a 
 
 ## tips
 
-The reproduce directory is only used to reproduce the paper, and is not recommended
+The reproduce directory is only used to reproduce the paper, and is not recommended.
+
 It is recommended for you to use LoRA-GA through peft(The usage is in the [quick start](#⚡️-quick-start) below.)
 
 ## ⚡️ quick start
