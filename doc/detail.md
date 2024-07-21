@@ -1,14 +1,20 @@
 - [preparation](#preparation)
-- [example](#example)
+- [quick start](#quick-start)
+- [What exactly does the above code do?](#what-exactly-does-the-above-code-do)
+- [examples](#examples)
 - [detail usage of functions and classes](#detail-usage-of-functions-and-classes)
   - [LoraGAConfig](#loragaconfig)
   - [estimate\_gradient](#estimate_gradient)
   - [LoraGAContext](#loragacontext)
+- [save\_loraga\_model\_init](#save_loraga_model_init)
+- [save\_loraga\_model\_final](#save_loraga_model_final)
+- [Why do we need to save the model twice?](#why-do-we-need-to-save-the-model-twice)
 - [for quantization model](#for-quantization-model)
   - [lora](#lora)
   - [lora-ga](#lora-ga)
   - [Reason for offload](#reason-for-offload)
   - [offload method](#offload-method)
+- [citation](#citation)
 
 ## preparation
 
@@ -21,7 +27,48 @@
    pip install -e .
 ```
 
-## example
+## quick start
+
+```python
+from peft import PeftModel, get_peft_model, LoraGAConfig,
+from peft.utils.lora_ga_utils import estimate_gradient, LoraGAContext, save_loraga_model_init, save_loraga_model_final
+
+peft_config = LoraGAConfig(
+    target_modules=find_all_linear_modules(model=model),
+)
+
+named_grad = estimate_gradient(
+    model=model,
+    dataloader=dataloader,
+    accelerator=accelerator,
+    quant_flag=False,
+)
+
+with LoraGAContext(model=model, named_grad=named_grad):
+    model = get_peft_model(model=model, peft_config=peft_config, adapter_name="default")
+
+save_loraga_model_init(model, save_dir=save_dir)
+
+"""
+train model
+"""
+
+save_loraga_model_final(model, save_dir=save_dir)
+# after save_loraga_model_final, you can load it just like you load lora model
+PeftModel.from_pretrained(model, save_dir)
+```
+
+## What exactly does the above code do?
+
+1. LoraGAConfig is subclass of LoraConfig. LoraGAConfig will set peft_type to PeftType.LORAGA and init_lora_weights = "lora_ga".
+
+2. estimate_gradient will use the data in the dataloader for forward and backward propagation, and return a dictionary named_grad. The key of this dictionary belongs to the submodule name of the model, and the value is the gradient of the weight W of the corresponding module.
+
+3. LoraGAContext will attach named_grad to model as an attribute of model. named_grad will pass named_grad to LoraGAModel which is a subclass of LoraModel. After using named_grad to initialize LoraGAModel(LoraModel), LoraGAModel frees it.
+
+after you get_peft_model, you can use your peft model as lora model to finetune
+
+## examples
 
 1. [example of float model](../examples/float_llama2-7b_metamath.py)
 
@@ -116,19 +163,42 @@ class LoraGAContext:
             delattr(self.model, "named_grad")
 ```
 
-LoraGAContext will attach named_grad to model as an attribute of model. named_grad will pass named_grad to LoraGAModel which is a subclass of LoraModel. After using named_grad to initialize LoraGAModel(LoraModel), LoraGAModel free named_grad as below
+LoraGAContext will attach named_grad to model as an attribute of model. named_grad will pass named_grad to LoraGAModel which is a subclass of LoraModel. After using named_grad to initialize LoraGAModel(LoraModel), LoraGAModel free named_grad
+
+## save_loraga_model_init
 
 ```python
-class LoraGAModel(LoraModel):
-    def __init__(self, model, config, adapter_name):
-        named_grad_key = "named_grad"
-        assert (hasattr(model, named_grad_key)
-                and getattr(model, named_grad_key) is not None), "no named_grad is specified"
-        self.named_grad = model.named_grad
-        model.named_grad = None
-        super().__init__(model, config, adapter_name)
-        self.named_grad = None
+def save_loraga_model_init(model: PeftModel, save_dir: str):
 ```
+
+save $A_{init}$ and $B_{init}$
+
+## save_loraga_model_final
+
+```python
+def save_loraga_model_final(model: PeftModel, save_dir: str):
+```
+
+save $A_{final}$ and $B_{final}$
+
+load $A_{init}$ and $B_{init}$ to init_adapter
+
+load $A_{final}$ and $B_{init}$ to init_adapter
+
+final - init
+
+delete init_adapter
+
+## Why do we need to save the model twice?
+
+![](../resource/pic/lora_ga_algo.png)
+when lora-ga initialization is executed, W will be modify:
+$$W_{init}=W_{pre\_trained}-\eta B A$$
+get $W_{init}, A_{init}, B_{init}$ after LoRA-GA initialization
+
+get $W_{init}, A_{final}, B_{final}$ after the train the peft model
+
+but peft only save weight of adapter, so we need to save $A_{final}-A_{init}$ and $B_{final} - B_{init}$
 
 ## for quantization model
 
@@ -176,4 +246,18 @@ for i in range(K-1, -1, -1):
     else：
         # If it is block 0, since the forward of the next batch first requires block 0 to be forwarded, no offload
         do nothing
+```
+
+## citation
+
+```
+@misc{wang2024loragalowrankadaptationgradient,
+      title={LoRA-GA: Low-Rank Adaptation with Gradient Approximation},
+      author={Shaowen Wang and Linxi Yu and Jian Li},
+      year={2024},
+      eprint={2407.05000},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2407.05000},
+}
 ```
