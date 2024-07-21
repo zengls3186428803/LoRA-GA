@@ -1,14 +1,14 @@
 - [preparation](#preparation)
 - [quick start](#quick-start)
 - [What exactly does the above code do?](#what-exactly-does-the-above-code-do)
+- [Why do we need to save the model twice?](#why-do-we-need-to-save-the-model-twice)
 - [examples](#examples)
 - [detail usage of functions and classes](#detail-usage-of-functions-and-classes)
   - [LoraGAConfig](#loragaconfig)
   - [estimate\_gradient](#estimate_gradient)
   - [LoraGAContext](#loragacontext)
-- [save\_loraga\_model\_init](#save_loraga_model_init)
-- [save\_loraga\_model\_final](#save_loraga_model_final)
-- [Why do we need to save the model twice?](#why-do-we-need-to-save-the-model-twice)
+  - [save\_loraga\_model\_init](#save_loraga_model_init)
+  - [save\_loraga\_model\_final](#save_loraga_model_final)
 - [for quantization model](#for-quantization-model)
   - [lora](#lora)
   - [lora-ga](#lora-ga)
@@ -67,6 +67,17 @@ PeftModel.from_pretrained(model, save_dir)
 3. LoraGAContext will attach named_grad to model as an attribute of model. named_grad will pass named_grad to LoraGAModel which is a subclass of LoraModel. After using named_grad to initialize LoraGAModel(LoraModel), LoraGAModel frees it.
 
 after you get_peft_model, you can use your peft model as lora model to finetune
+
+## Why do we need to save the model twice?
+
+![](../resource/pic/lora_ga_algo.png)
+when lora-ga initialization is executed, W will be modify:
+$$W_{init}=W_{pre\_trained}-\eta B A$$
+get $W_{init}, A_{init}, B_{init}$ after LoRA-GA initialization
+
+get $W_{init}, A_{final}, B_{final}$ after the train the peft model
+
+but peft only save weight of adapter, so we need to save $A_{final}-A_{init}$ and $B_{final} - B_{init}$
 
 ## examples
 
@@ -165,7 +176,7 @@ class LoraGAContext:
 
 LoraGAContext will attach named_grad to model as an attribute of model. named_grad will pass named_grad to LoraGAModel which is a subclass of LoraModel. After using named_grad to initialize LoraGAModel(LoraModel), LoraGAModel free named_grad
 
-## save_loraga_model_init
+### save_loraga_model_init
 
 ```python
 def save_loraga_model_init(model: PeftModel, save_dir: str):
@@ -173,7 +184,7 @@ def save_loraga_model_init(model: PeftModel, save_dir: str):
 
 save $A_{init}$ and $B_{init}$
 
-## save_loraga_model_final
+### save_loraga_model_final
 
 ```python
 def save_loraga_model_final(model: PeftModel, save_dir: str):
@@ -188,17 +199,6 @@ load $A_{final}$ and $B_{init}$ to init_adapter
 final - init
 
 delete init_adapter
-
-## Why do we need to save the model twice?
-
-![](../resource/pic/lora_ga_algo.png)
-when lora-ga initialization is executed, W will be modify:
-$$W_{init}=W_{pre\_trained}-\eta B A$$
-get $W_{init}, A_{init}, B_{init}$ after LoRA-GA initialization
-
-get $W_{init}, A_{final}, B_{final}$ after the train the peft model
-
-but peft only save weight of adapter, so we need to save $A_{final}-A_{init}$ and $B_{final} - B_{init}$
 
 ## for quantization model
 
