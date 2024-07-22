@@ -81,7 +81,6 @@ For a more stable (numerically) and convenient experience, we highly recommend u
 ## Citation
 
 ```
-
 @misc{wang2024loragalowrankadaptationgradient,
     title={LoRA-GA: Low-Rank Adaptation with Gradient Approximation},
     author={Shaowen Wang and Linxi Yu and Jian Li},
@@ -91,5 +90,4 @@ For a more stable (numerically) and convenient experience, we highly recommend u
     primaryClass={cs.LG},
     url={https://arxiv.org/abs/2407.05000},
 }
-
 ```
