@@ -2,93 +2,94 @@
 
 - [LoRA-GA: Low-Rank Adaptation with Gradient Approximation](#lora-ga-low-rank-adaptation-with-gradient-approximation)
   - [Overview](#overview)
-  - [tips](#tips)
-  - [⚡️ quick start](#️-quick-start)
-    - [What exactly does the above code do?](#what-exactly-does-the-above-code-do)
-  - [citation](#citation)
+  - [Quick start](#quick-start)
+    - [1. Install custom peft](#1-install-custom-peft)
+    - [2. Use LoRA-GA in peft](#2-use-lora-ga-in-peft)
+    - [3. Explanation](#3-explanation)
+  - [Note on Usage](#note-on-usage)
+  - [Citation](#citation)
 
 ## Overview
 
-we introduce a novel initialization method, LoRA-GA (Low Rank Adaptation with Gradient Approximation), which aligns the gradients of low-rank matrix product with those of full fine-tuning at the first step. Our extensive experiments demonstrate that LoRA-GA achieves a convergence rate comparable to that of full fine-tuning (hence being significantly faster than vanilla LoRA as well as various recent improvements) while simultaneously attaining comparable or even better performance.
+We introduce a novel initialization method, LoRA-GA (Low Rank Adaptation with Gradient Approximation), which aligns the gradients of low-rank matrix product with those of full fine-tuning at the first step. Our extensive experiments demonstrate that LoRA-GA achieves a convergence rate comparable to that of full fine-tuning (hence being significantly faster than vanilla LoRA as well as various recent improvements) while simultaneously attaining comparable or even better performance.
 ![](./resource/pic/lora_ga_exp_pic.png)
 (Left) Training loss curves of Llama 2-7B on MetaMathQA to training steps. LoRA-GA
 converges as quickly as full fine-tuning and outperforms LoRA. (Right) Initialization procedures
 used in LoRA and LoRA-GA. The key difference is that LoRA-GA initializes adapters using the
 eigenvectors of the gradient matrix, as opposed to random initialization with a scaling factor.
 
-## tips
+## Quick start
 
-The reproduce directory is only used to reproduce the paper, and is not recommended.
+### 1. Install custom peft
 
-It is recommended for you to use LoRA-GA through peft(The usage is in the [quick start](#⚡️-quick-start) below.)
+First, clone the LoRA-GA repository and install custom `peft`:
 
-## ⚡️ quick start
+```bash
+git clone https://github.com/Outsider565/LoRA-GA.git
+cd LoRA-GA
+pip install -e peft
+```
 
-1. install peft
-   ```bash
-   git clone https://github.com/Outsider565/LoRA-GA.git
-   cd LoRA-GA
-   git submodule init
-   git submodule update peft
-   cd peft
-   pip install -e .
-   ```
-2. use LoRA-GA in peft
+### 2. Use LoRA-GA in peft
 
-   ```python
-   from peft import PeftModel, LoraGAConfig, get_peft_model
-   from peft.utils.lora_ga_utils import estimate_gradient, LoraGAContext, save_loraga_model_init, save_loraga_model_final
+Here is an example of how to use LoRA-GA with peft in your code:
 
-   peft_config = LoraGAConfig()
-   # model should be float(such as bf16, fp32) model
-   named_grad = estimate_gradient(
-       model=model,
-       dataloader=dataloader,
-       accelerator=accelerator,
-       quant_flag=False,
-   )
-   """
-   if you want to use quantized model:
-       you can set quant_flag=Ture to Reduce GPU memory usage during gradient estimation.
-       then re-get your quantizied model here.
-   """
-   with LoraGAContext(model=model, named_grad=named_grad):
-       model = get_peft_model(model=model, peft_config=peft_config)
-   save_loraga_model_init(model, save_dir=save_dir)
+```python
+from peft import PeftModel, LoraGAConfig, get_peft_model
+from peft.utils.lora_ga_utils import estimate_gradient, LoraGAContext, save_loraga_model_init, save_loraga_model_final
+# Configure LoRA-GA
+peft_config = LoraGAConfig()
+# Estimate gradients
+named_grad = estimate_gradient(
+    model=model,
+    dataloader=dataloader,
+    accelerator=accelerator,
+    quant_flag=False,
+)
+# Use the LoraGAContext to attach named gradients to the model
+with LoraGAContext(model=model, named_grad=named_grad):
+    model = get_peft_model(model=model, peft_config=peft_config)
+save_loraga_model_init(model, save_dir=save_dir)
 
-   """
-   train model
-   """
+"""
+Train your model here using your favorite tool, e.g. PyTorch Lightning, Hugging Face Trainer, Pytorch Custom Training Loop, etc.
+"""
+# Save the final state of the LoRA-GA model
+save_loraga_model_final(model, save_dir=save_dir)
+# Load the saved model like you would load a LoRA model
+model = PeftModel.from_pretrained(model, save_dir)
+```
 
-   save_loraga_model_final(model, save_dir=save_dir)
-   # after save_loraga_model_final, you can load it just like you load lora model
-   PeftModel.from_pretrained(model, save_dir)
-   ```
+### 3. Explanation
 
-Detailed usage(such as quantizaion model, detailed usage of function and class) see [Detailed usage](./doc/detail.md)
+- `LoraGAConfig`: A subclass of `LoraConfig`. It sets `peft_type` to `PeftType.LORAGA` and `init_lora_weights = "lora_ga"`.
 
-### What exactly does the above code do?
+- `estimate_gradient`: Uses the data in the dataloader for estimating gradient `named_grad`, which contains the name and gradient of the corresponding module.
 
-1. LoraGAConfig is subclass of LoraConfig. LoraGAConfig will set peft_type to PeftType.LORAGA and init_lora_weights = "lora_ga".
+- `LoraGAContext`: Attaches `named_grad` to model as an attribute(`model.named_grad`). After using named_grad to initialize LoraGAModel(LoraModel), LoraGAModel frees it.
 
-2. estimate_gradient will use the data in the dataloader for forward and backward propagation, and return a dictionary named_grad. The key of this dictionary belongs to the submodule name of the model, and the value is the gradient of the weight W of the corresponding module.
+- `get_peft_model:`: After initializing the model using `get_peft_model`, you can fine-tune it as you would with a default LoRA model.
 
-3. LoraGAContext will attach named_grad to model as an attribute of model. named_grad will pass named_grad to LoraGAModel which is a subclass of LoraModel. After using named_grad to initialize LoraGAModel(LoraModel), LoraGAModel frees it.
+Detailed usage(e.g. quantizaion model, api reference) see [Detailed usage](./doc/detail.md)
 
-after you get_peft_model, you can use your peft model as lora model to finetune
+## Note on Usage
 
-## citation
+The `reproduce` directory contains legacy code intended solely for reproducing the results of the original paper. This is not the recommended approach for using LoRA-GA.
+
+For a more stable (numerically) and convenient experience, we highly recommend using LoRA-GA through the our custom `peft` library. Detailed usage instructions can be found in the [Quick Start](#quick-start) above. This new API ensures better compatibility and ease of use.
+
+## Citation
 
 ```
 
 @misc{wang2024loragalowrankadaptationgradient,
-title={LoRA-GA: Low-Rank Adaptation with Gradient Approximation},
-author={Shaowen Wang and Linxi Yu and Jian Li},
-year={2024},
-eprint={2407.05000},
-archivePrefix={arXiv},
-primaryClass={cs.LG},
-url={https://arxiv.org/abs/2407.05000},
+    title={LoRA-GA: Low-Rank Adaptation with Gradient Approximation},
+    author={Shaowen Wang and Linxi Yu and Jian Li},
+    year={2024},
+    eprint={2407.05000},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG},
+    url={https://arxiv.org/abs/2407.05000},
 }
 
 ```

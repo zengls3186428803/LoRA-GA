@@ -79,7 +79,7 @@ def main():
 
     save_loraga_model_final(model, save_dir=save_dir)
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    PeftModel.from_pretrained(model, save_dir)
+    model = PeftModel.from_pretrained(model, save_dir)
     print(model)
 
 
