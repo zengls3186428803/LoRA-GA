@@ -13,6 +13,9 @@ from utils import (
     find_all_linear_modules,
 )
 from data import DATASET_MAP
+from peft.utils.lora_ga_utils.offload_utils_for_quant.resource_monitor import (
+    show_gpu_and_cpu_memory,
+)
 
 
 def main():
@@ -49,7 +52,7 @@ def main():
     """
     re-get the quant-model
     """
-    quant_type = "nf4"
+    quant_type = "int8"
     named_grad = estimate_gradient(
         model=model,
         dataloader=dataloader,
@@ -58,6 +61,10 @@ def main():
         origin_type="bf16",
         quant_type=quant_type,
     )
+    print("after estimate_gradient========================================")
+    show_gpu_and_cpu_memory()
+    del model
+    torch.cuda.empty_cache()
     # ++++++++++++++++++++++++++++++++++++++++++++++++
     model_dtype = quant_type
     model, tokenizer = initialize_text_to_text_model(
@@ -65,10 +72,16 @@ def main():
     )
     # ++++++++++++++++++++++++++++++++++++++++++++++++
     print(peft_config)
+
+    print("pre get_peft_model===============================================")
+    show_gpu_and_cpu_memory()
     with LoraGAContext(model=model, named_grad=named_grad):
         model = get_peft_model(
             model=model, peft_config=peft_config, adapter_name="default"
         )
+    print("after get_peft_model=============================================")
+    show_gpu_and_cpu_memory()
+    print(model)
     print("finish get_peft_moel=============================================")
     save_dir = "snapshot"
     save_loraga_model_init(model, save_dir=save_dir)
