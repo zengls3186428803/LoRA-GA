@@ -6,6 +6,7 @@
     - [1. Install custom peft](#1-install-custom-peft)
     - [2. Use LoRA-GA in peft](#2-use-lora-ga-in-peft)
     - [3. Explanation](#3-explanation)
+  - [Examples](#examples)
   - [Note on Usage](#note-on-usage)
   - [Citation](#citation)
 
@@ -72,11 +73,17 @@ model = PeftModel.from_pretrained(model, save_dir)
 
 Detailed usage(e.g. quantizaion model, api reference) see [Detailed usage](./doc/detail.md)
 
+## Examples
+
+1. [Training Llama2 7b on metamath QA](./examples/float_llama2-7b_metamath.py)
+
+2. [Training quantized Llama2 7b on metamath QA](./examples/quant_llama-2-7b_metamath.py)
+
 ## Note on Usage
 
 The `reproduce` directory contains legacy code intended solely for reproducing the results of the original paper. This is not the recommended approach for using LoRA-GA.
 
-For a more stable (numerically) and convenient experience, we highly recommend using LoRA-GA through the our custom `peft` library. Detailed usage instructions can be found in the [Quick Start](#quick-start) above. This new API ensures better compatibility and ease of use.
+For a more numerically stable and convenient experience, we highly recommend using LoRA-GA through the our custom `peft` library. Detailed usage instructions can be found in the [Quick Start](#quick-start) above. This new API ensures better compatibility and ease of use.
 
 ## Citation
 
