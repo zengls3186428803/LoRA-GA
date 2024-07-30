@@ -8,6 +8,7 @@ from peft.utils.lora_ga_utils import estimate_gradient, LoraGAContext, save_lora
 from accelerate import Accelerator
 from utils import transform_dataset, initialize_text_to_text_model, find_all_linear_modules
 from data import DATASET_MAP
+from transformers import Trainer,TrainingArguments
 
 
 def main():
@@ -17,11 +18,11 @@ def main():
     model_dtype = "bf16"
     model, tokenizer = initialize_text_to_text_model(model_id, model_type, model_dtype, flash_attention=True)
     print(model)
-    # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     peft_config = LoraGAConfig(
         target_modules=find_all_linear_modules(model=model),
     )
-    # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     dataset_name = "meta_math"
     dataset_func = DATASET_MAP[dataset_name]
     train_set, val_set, _ = dataset_func()
