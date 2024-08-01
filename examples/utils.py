@@ -193,7 +193,8 @@ def initialize_text_to_text_model(
             model_config["torch_dtype"] = torch.bfloat16
         case "int8":
             quant_8bit_config = dict(
-                load_in_8bit=True, llm_int8_threshold=6.0, llm_int8_has_fp16_weight=True
+                load_in_8bit=True,
+                llm_int8_threshold=6.0,
             )
             model_config["quantization_config"] = quant_8bit_config
         case "nf4":
@@ -346,7 +347,7 @@ def train_text_to_text_model(
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=valid_dataset,
-        compute_metrics=compute_metrics if "llama" not in run_name else None,
+        compute_metrics=None,
         callbacks=[
             EarlyStoppingCallback(
                 early_stopping_patience=kwargs.get("early_stopping_patience", 1)

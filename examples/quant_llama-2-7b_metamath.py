@@ -11,14 +11,17 @@ from utils import (
     transform_dataset,
     initialize_text_to_text_model,
     find_all_linear_modules,
+    train_text_to_text_model,
 )
 from data import DATASET_MAP
 from peft.utils.lora_ga_utils.offload_utils_for_quant.resource_monitor import (
     show_gpu_and_cpu_memory,
 )
+import wandb
 
 
 def main():
+    wandb.init(mode="disabled")
     accelerator = Accelerator()
     model_id = "meta-llama/Llama-2-7b-hf"
     model_type = "CausalLM"
@@ -52,7 +55,7 @@ def main():
     """
     re-get the quant-model
     """
-    quant_type = "int8"
+    quant_type = "nf4"
     named_grad = estimate_gradient(
         model=model,
         dataloader=dataloader,
@@ -83,12 +86,37 @@ def main():
     show_gpu_and_cpu_memory()
     print(model)
     print("finish get_peft_moel=============================================")
-    save_dir = "snapshot"
+    save_dir = "snapshot_quant"
     save_loraga_model_init(model, save_dir=save_dir)
 
-    """
-    train
-    """
+    model = train_text_to_text_model(
+        run_name="test_peft",
+        train_dataset=train_set,
+        valid_dataset=val_set,
+        model=model,
+        tokenizer=tokenizer,
+        model_type=model_type,
+        num_train_epochs=1,
+        per_device_batch_size=1,
+        real_batch_size=128,
+        bf16=(model_dtype == "bf16"),
+        eval_epochs=1,
+        early_stopping_patience=3,
+        max_length=1024,
+        logging_steps=1,
+        use_loraplus=False,
+        loraplus_lr_ratio=None,
+        learning_rate=2e-5,
+        num_process=accelerator.num_processes,
+        gradient_checkpointing=False,
+        seed=31,
+        training_args=dict(
+            lr_scheduler_type="cosine",
+            max_grad_norm=1.0,
+            warmup_ratio=0.03,
+            weight_decay=0.0,
+        ),
+    )
 
     save_loraga_model_final(model, save_dir=save_dir)
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
