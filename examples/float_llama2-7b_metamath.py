@@ -29,7 +29,7 @@ def main():
     model_type = "CausalLM"
     model_dtype = "bf16"
     config = dict(
-        model="llama",
+        model="_llama",
         a=8,
         r=32,
         s=128,

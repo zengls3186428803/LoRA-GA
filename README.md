@@ -86,7 +86,7 @@ This is an example of a single machine with 4 GPUs. If you want to use n GPUs in
 you need to modify the accelerate_config.yaml file.
 
 ```bash
-CUDA_VISIBLE_DEVICES="0,1,2,3" python -m accelerate.commands.launch --main_process_port $(shuf -i 10000-60000 -n 1) --config_file examples/accelerate_config.yaml examples/float_llama-2-7b_metamath.py
+CUDA_VISIBLE_DEVICES="0,1,2,3" python -m accelerate.commands.launch --main_process_port $(shuf -i 10000-60000 -n 1) --config_file examples/accelerate_config.yaml examples/float_llama2-7b_metamath.py
 ```
 
 ## Note on Usage
