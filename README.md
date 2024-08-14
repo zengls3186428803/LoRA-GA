@@ -7,6 +7,7 @@
     - [2. Use LoRA-GA in peft](#2-use-lora-ga-in-peft)
     - [3. Explanation](#3-explanation)
   - [Examples](#examples)
+    - [Multi-card training](#multi-card-training)
   - [Note on Usage](#note-on-usage)
   - [Citation](#citation)
 
@@ -78,6 +79,15 @@ Detailed usage(e.g. quantizaion model, api reference) see [Detailed usage](./doc
 1. [Training Llama2 7b on metamath QA](./examples/float_llama2-7b_metamath.py)
 
 2. [Training quantized Llama2 7b on metamath QA](./examples/quant_llama-2-7b_metamath.py)
+
+### Multi-card training
+
+This is an example of a single machine with 4 GPUs. If you want to use n GPUs in parallel, 
+you need to modify the accelerate_config.yaml file.
+
+```bash
+CUDA_VISIBLE_DEVICES="0,1,2,3" python -m accelerate.commands.launch --main_process_port $(shuf -i 10000-60000 -n 1) --config_file examples/accelerate_config.yaml examples/float_llama-2-7b_metamath.py
+```
 
 ## Note on Usage
 

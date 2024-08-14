@@ -82,7 +82,7 @@ def main():
     print("finish get_peft_model=================================================")
 
     model = train_text_to_text_model(
-        run_name=f"peft_test/{wandb_name}",
+        run_name=os.path.join("peft_test", wandb_name),
         train_dataset=train_set,
         valid_dataset=val_set,
         model=model,
