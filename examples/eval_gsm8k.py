@@ -23,14 +23,16 @@ def extract_num(text):
         return 0
 
 
-def main(model_name, bsz=4):
+def main(model_name, eval_seed=0, temperature=0.8, bsz=4):
     _, _, test_set = load_gsm8k()
     # model_type = "CausalLM"
     # model, tokenizer = initialize_text_to_text_model(
     #     model_name, model_type, True, tokenizer="meta-llama/Llama-2-7b-hf",flash_attention=True
     # )
-    model = LLM(model_name, dtype="bfloat16")
-    sampling_params = SamplingParams(top_p=0.95, temperature=0.8, max_tokens=1024)
+    model = LLM(model_name, dtype="bfloat16", seed=eval_seed)
+    sampling_params = SamplingParams(
+        top_p=0.95, temperature=temperature, max_tokens=1024
+    )
     all = 0
     correct = 0
     t = tqdm(range(0, len(test_set), bsz))
@@ -55,7 +57,9 @@ def main(model_name, bsz=4):
         with open("gsm8k_results.txt", "w") as f:
             f.write("Model Acc\n")
     with open("gsm8k_results.txt", "a") as f:
-        f.write(f"{model_name} {correct/all}\n")
+        f.write(
+            f"{model_name},eval_seed={eval_seed},temperature={temperature}    {correct/all}\n"
+        )
 
 
 if __name__ == "__main__":

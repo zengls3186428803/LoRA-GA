@@ -22,6 +22,35 @@ import wandb
 import os
 
 
+def get_base_llama_lmodel(model, dtype="bf16"):
+    model_name = "meta-llama/Llama-2-7b-hf"
+    model_type = "CausalLM"
+    if dtype in ["nf4", "int8"]:
+        float_attr_list = list(model.__dict__.keys())
+        float_llama_config_attr_list = list(model.config.__dict__.keys())
+        del model
+        model, tokenizer = initialize_text_to_text_model(
+            model_name, model_type, dtype=dtype
+        )
+        print(f"dtype of model is {dtype}, so dequantize model")
+        print("before dequantize======================================")
+        print(model)
+        model = model.dequantize()
+        quant_attr_list = list(model.__dict__.keys())
+        quant_llama_config_attr_list = list(model.config.__dict__.keys())
+        for attr in quant_attr_list:
+            if attr not in float_attr_list:
+                delattr(model, attr)
+        for attr in quant_llama_config_attr_list:
+            if attr not in float_llama_config_attr_list:
+                delattr(model.config, attr)
+        model = model.bfloat16()
+        model = model.to("cpu")
+        print("finish dequnatize=======================================")
+        print(model)
+    return model
+
+
 def main():
     wandb.init(mode="disabled")
     accelerator = Accelerator()
@@ -29,7 +58,7 @@ def main():
     model_type = "CausalLM"
     model_dtype = "bf16"
     config = dict(
-        model="q4llama",
+        model="v2q4llama",
         a=8,
         r=32,
         s=128,
@@ -68,6 +97,7 @@ def main():
     regain the quant-model
     """
     quant_type = "nf4"
+    model = get_base_llama_lmodel(model, dtype=quant_type)
     named_grad = estimate_gradient(
         model=model,
         dataloader=dataloader,
@@ -78,7 +108,7 @@ def main():
     )
     del model
     torch.cuda.empty_cache()
-    
+
     model_dtype = quant_type
     model, tokenizer = initialize_text_to_text_model(
         model_id, model_type, model_dtype, flash_attention=False

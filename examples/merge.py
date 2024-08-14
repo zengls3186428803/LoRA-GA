@@ -5,6 +5,7 @@ from utils import initialize_text_to_text_model
 import os
 
 
+
 def merge(checkpoint: str, dtype: str, merge_suffix="merged_checkpoint"):
     model_name = "meta-llama/Llama-2-7b-hf"
     model_type = "CausalLM"

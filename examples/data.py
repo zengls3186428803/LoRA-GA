@@ -7,6 +7,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
 def cache_to_disk(root_datadir):
     def decorator_cache(func):
         @functools.wraps(func)
@@ -32,6 +33,7 @@ def cache_to_disk(root_datadir):
 
     return decorator_cache
 
+
 @cache_to_disk("data_cache")
 def load_emo():
     dataset = load_dataset("emo")
@@ -46,6 +48,7 @@ def load_emo():
     train_set = dataset["train"]
     test_set = dataset["test"]
     return train_set, test_set, test_set
+
 
 @cache_to_disk("data_cache")
 def load_sst2():
@@ -62,6 +65,7 @@ def load_sst2():
     validation_set = dataset["validation"]
     return train_set, validation_set, validation_set
 
+
 @cache_to_disk("data_cache")
 def load_cola():
     dataset = load_dataset("glue", "cola")
@@ -76,6 +80,7 @@ def load_cola():
     train_set = dataset["train"]
     validation_set = dataset["validation"]
     return train_set, validation_set, validation_set
+
 
 @cache_to_disk("data_cache")
 def load_qqp():
@@ -92,6 +97,7 @@ def load_qqp():
     validation_set = dataset["validation"]
     return train_set, validation_set, validation_set
 
+
 @cache_to_disk("data_cache")
 def load_mrpc():
     dataset = load_dataset("glue", "mrpc")
@@ -106,6 +112,7 @@ def load_mrpc():
     train_set = dataset["train"]
     validation_set = dataset["validation"]
     return train_set, validation_set, validation_set
+
 
 @cache_to_disk("data_cache")
 def load_mnli():
@@ -122,6 +129,7 @@ def load_mnli():
     validation_set = dataset["validation_matched"]
     return train_set, validation_set, validation_set
 
+
 @cache_to_disk("data_cache")
 def load_squad():
     dataset = load_dataset("rajpurkar/squad")
@@ -135,6 +143,7 @@ def load_squad():
     train_set = dataset["train"]
     validation_set = dataset["validation"]
     return train_set, validation_set, validation_set
+
 
 @cache_to_disk("data_cache")
 def load_qnli():
@@ -153,44 +162,48 @@ def load_qnli():
     return train_set, validation_set, test_set
 
 
-template_with_input = '''### Instruction:
+template_with_input = """### Instruction:
 {instruction}
 
 ### Input:
 {input}
 
 ### Response:
-'''
+"""
 
-template_wo_input = '''Below is an instruction that describes a task. Write a response that appropriately completes the request.
+template_wo_input = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction:
 {instruction}
 
 ### Response:
-'''
+"""
+
 
 @cache_to_disk("data_cache")
 def load_alpaca():
     dataset = load_dataset("tatsu-lab/alpaca")
+
     def alpaca_preprocess(instruction, input, output):
         if input == "":
             x = template_wo_input.format(instruction=instruction)
         else:
             x = template_with_input.format(instruction=instruction, input=input)
         return {"x": x, "y": output}
+
     dataset = dataset.map(
         lambda e: alpaca_preprocess(e["instruction"], e["input"], e["output"])
     )
     # we sample 10% of the training set as validation set
-    train_set = dataset["train"].train_test_split(test_size=0.1)['train']
-    validation_set = dataset["train"].train_test_split(test_size=0.1)['test']
+    train_set = dataset["train"].train_test_split(test_size=0.1)["train"]
+    validation_set = dataset["train"].train_test_split(test_size=0.1)["test"]
     return train_set, validation_set, validation_set
+
 
 @cache_to_disk("data_cache")
 def load_gsm8k():
     dataset = load_dataset("gsm8k", "main")
-    #x = "Q: " + x[0] + "\n" + "A:"
+    # x = "Q: " + x[0] + "\n" + "A:"
     dataset = dataset.map(
         lambda e: {
             "x": f'Q: {e["question"]}\nA: ',
@@ -201,36 +214,43 @@ def load_gsm8k():
     validation_set = dataset["test"]
     return train_set, validation_set, validation_set
 
+
 @cache_to_disk("data_cache")
 def load_alpaca_gpt4():
     dataset = load_dataset("tatsu-lab/alpaca")
+
     def alpaca_preprocess(instruction, input, output):
         if input == "":
             x = template_wo_input.format(instruction=instruction)
         else:
             x = template_with_input.format(instruction=instruction, input=input)
         return {"x": x, "y": output}
+
     dataset = dataset.map(
         lambda e: alpaca_preprocess(e["instruction"], e["input"], e["output"])
     )
     # we sample 10% of the training set as validation set
-    train_set = dataset["train"].train_test_split(test_size=0.1)['train']
-    validation_set = dataset["train"].train_test_split(test_size=0.1)['test']
+    train_set = dataset["train"].train_test_split(test_size=0.1)["train"]
+    validation_set = dataset["train"].train_test_split(test_size=0.1)["test"]
     return train_set, validation_set, validation_set
+
 
 @cache_to_disk("data_cache")
 def load_flan():
-    dataset = load_dataset("Muennighoff/flan", split='train', streaming=True)
+    dataset = load_dataset("Muennighoff/flan", split="train", streaming=True)
+
     def preprocess(data):
         return {
-            "x": template_wo_input.format(instruction=data['inputs']),
-            "y": data['targets'],
+            "x": template_wo_input.format(instruction=data["inputs"]),
+            "y": data["targets"],
         }
+
     train_samples = []
     eval_samples = []
     count = 0
     dataset.shuffle(buffer_size=5000, seed=42)
     from tqdm import tqdm
+
     for sample in tqdm(dataset, total=110000):
         processed_sample = preprocess(sample)
         if count < 100000:  # First 100,000 samples for training
@@ -245,28 +265,83 @@ def load_flan():
     eval_set = Dataset.from_list(eval_samples)
     return train_set, eval_set, eval_set
 
+
 @cache_to_disk("data_cache")
-def load_meta_math(max_tokens=512):
-    dataset = load_dataset("meta-math/MetaMathQA", split='train')
+def load_meta_math_5k(max_tokens=512):
+    dataset = load_dataset("meta-math/MetaMathQA", split="train")
     from transformers import AutoTokenizer
+
     tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
+
     def preprocess(data):
         return {
             "x": f'Q: {data["query"]}\nA: ',
-            "y": data["response"].split("\nThe answer is:")[0]
+            "y": data["response"].split("\nThe answer is:")[0],
         }
+
     train_samples = []
     eval_samples = []
     count = 0
     dataset.shuffle(seed=42)
     from tqdm import tqdm
+
     bar = tqdm(dataset, total=110000)
     total = 0
     ok = 0
     for sample in dataset:
         total += 1
         temp = preprocess(sample)
-        if len(tokenizer(temp['x']+' '+temp['y'])['input_ids']) >= max_tokens or "GSM" not in sample["type"]:
+        if (
+            len(tokenizer(temp["x"] + " " + temp["y"])["input_ids"]) >= max_tokens
+            or "GSM" not in sample["type"]
+        ):
+            continue
+        bar.update(1)
+        bar.set_description(f"ok: {ok}/{total}")
+        ok += 1
+        processed_sample = preprocess(sample)
+        if count < 5000:
+            train_samples.append(processed_sample)
+        elif 5000 <= count < 5500:
+            eval_samples.append(processed_sample)
+        elif count >= 5500:  # Stop processing after collecting enough samples
+            break
+        count += 1
+    # convert to hf dataset
+    train_set = Dataset.from_list(train_samples)
+    eval_set = Dataset.from_list(eval_samples)
+    return train_set, eval_set, eval_set
+
+
+@cache_to_disk("data_cache")
+def load_meta_math(max_tokens=512):
+    dataset = load_dataset("meta-math/MetaMathQA", split="train")
+    from transformers import AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
+
+    def preprocess(data):
+        return {
+            "x": f'Q: {data["query"]}\nA: ',
+            "y": data["response"].split("\nThe answer is:")[0],
+        }
+
+    train_samples = []
+    eval_samples = []
+    count = 0
+    dataset.shuffle(seed=42)
+    from tqdm import tqdm
+
+    bar = tqdm(dataset, total=110000)
+    total = 0
+    ok = 0
+    for sample in dataset:
+        total += 1
+        temp = preprocess(sample)
+        if (
+            len(tokenizer(temp["x"] + " " + temp["y"])["input_ids"]) >= max_tokens
+            or "GSM" not in sample["type"]
+        ):
             continue
         bar.update(1)
         bar.set_description(f"ok: {ok}/{total}")
@@ -284,28 +359,69 @@ def load_meta_math(max_tokens=512):
     eval_set = Dataset.from_list(eval_samples)
     return train_set, eval_set, eval_set
 
+
 @cache_to_disk("data_cache")
-def load_flan_v2(max_tokens=512):
-    dataset = load_dataset("SirNeural/flan_v2", split='train', streaming=True)
+def load_meta_math_full(max_tokens=512):
+    dataset = load_dataset("meta-math/MetaMathQA", split="train")
     from transformers import AutoTokenizer
+
     tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
+
     def preprocess(data):
         return {
-            "x": data['inputs'],
-            "y": data['targets'],
+            "x": f'Q: {data["query"]}\nA: ',
+            "y": data["response"].split("\nThe answer is:")[0],
         }
+
+    train_samples = []
+    eval_samples = []
+    count = 0
+    dataset.shuffle(seed=42)
+    total = 0
+    ok = 0
+    for sample in dataset:
+        total += 1
+        temp = preprocess(sample)
+        if len(tokenizer(temp["x"] + " " + temp["y"])["input_ids"]) >= max_tokens:
+            continue
+        ok += 1
+        processed_sample = preprocess(sample)
+        train_samples.append(processed_sample)
+        if 0 <= count < 1000:  # First 1000 count for evaluation
+            eval_samples.append(processed_sample)
+        count += 1
+    # convert to hf dataset
+    train_set = Dataset.from_list(train_samples)
+    eval_set = Dataset.from_list(eval_samples)
+    return train_set, eval_set, eval_set
+
+
+@cache_to_disk("data_cache")
+def load_flan_v2(max_tokens=512):
+    dataset = load_dataset("SirNeural/flan_v2", split="train", streaming=True)
+    from transformers import AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
+
+    def preprocess(data):
+        return {
+            "x": data["inputs"],
+            "y": data["targets"],
+        }
+
     train_samples = []
     eval_samples = []
     count = 0
     dataset.shuffle(buffer_size=5000, seed=42)
     from tqdm import tqdm
+
     bar = tqdm(dataset, total=110000)
     total = 0
     ok = 0
     for sample in dataset:
         total += 1
         temp = preprocess(sample)
-        if len(tokenizer(temp['x']+' '+temp['y'])['input_ids']) >= max_tokens:
+        if len(tokenizer(temp["x"] + " " + temp["y"])["input_ids"]) >= max_tokens:
             continue
         bar.update(1)
         bar.set_description(f"ok: {ok}/{total}")
@@ -323,34 +439,37 @@ def load_flan_v2(max_tokens=512):
     eval_set = Dataset.from_list(eval_samples)
     return train_set, eval_set, eval_set
 
+
 @cache_to_disk("data_cache")
 def load_codefeedback(max_tokens=1024):
-    dataset = load_dataset("m-a-p/CodeFeedback-Filtered-Instruction", split='train')
+    dataset = load_dataset("m-a-p/CodeFeedback-Filtered-Instruction", split="train")
     from transformers import AutoTokenizer
+
     tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
+
     def preprocess(data):
-        y = data['answer']
-        y = "```".join(y.split("```")[:2]) + "```" # only keep the first code block
+        y = data["answer"]
+        y = "```".join(y.split("```")[:2]) + "```"  # only keep the first code block
         return {
-            "x": template_wo_input.format(
-                instruction=data['query']
-            ),
+            "x": template_wo_input.format(instruction=data["query"]),
             "y": y,
         }
+
     train_samples = []
     eval_samples = []
     count = 0
     dataset.shuffle(seed=42)
     from tqdm import tqdm
+
     bar = tqdm(dataset, total=110000)
     total = 0
     ok = 0
     for sample in dataset:
         total += 1
         temp = preprocess(sample)
-        if "```" not in sample['answer']:
+        if "```" not in sample["answer"]:
             continue
-        if len(tokenizer(temp['x']+' '+temp['y'])['input_ids']) >= max_tokens:
+        if len(tokenizer(temp["x"] + " " + temp["y"])["input_ids"]) >= max_tokens:
             continue
         bar.update(1)
         bar.set_description(f"ok: {ok}/{total}")
@@ -368,33 +487,36 @@ def load_codefeedback(max_tokens=1024):
     eval_set = Dataset.from_list(eval_samples)
     return train_set, eval_set, eval_set
 
+
 @cache_to_disk("data_cache")
 def load_wizardlm(max_tokens=1024):
-    dataset = load_dataset("silk-road/Wizard-LM-Chinese-instruct-evol", split='train')
+    dataset = load_dataset("silk-road/Wizard-LM-Chinese-instruct-evol", split="train")
     from transformers import AutoTokenizer
+
     tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
+
     def preprocess(data):
-        y = data['output']
+        y = data["output"]
         return {
-            "x": template_wo_input.format(
-                instruction=data['instruction']
-            ),
+            "x": template_wo_input.format(instruction=data["instruction"]),
             "y": y,
         }
+
     train_samples = []
     eval_samples = []
     count = 0
     dataset.shuffle(seed=42)
     from tqdm import tqdm
+
     bar = tqdm(dataset, total=70000)
     total = 0
     ok = 0
     for sample in dataset:
         total += 1
         temp = preprocess(sample)
-        if "sorry" in temp['y'].lower() or "as an ai" in temp['y'].lower():
+        if "sorry" in temp["y"].lower() or "as an ai" in temp["y"].lower():
             continue
-        if len(tokenizer(temp['x']+' '+temp['y'])['input_ids']) >= max_tokens:
+        if len(tokenizer(temp["x"] + " " + temp["y"])["input_ids"]) >= max_tokens:
             continue
         bar.update(1)
         bar.set_description(f"ok: {ok}/{total}")
@@ -428,6 +550,8 @@ DATASET_MAP = {
     "flan": load_flan,
     "flan_v2": load_flan_v2,
     "meta_math": load_meta_math,
+    "meta_math_full": load_meta_math_full,
+    "meta_math_5k": load_meta_math_5k,
     "codefeedback": load_codefeedback,
     "wizard_lm": load_wizardlm,
 }
@@ -449,7 +573,7 @@ if __name__ == "__main__":
     #     print(test_set[0])
     #     print()
     x, r, _ = load_wizardlm()
-    print(x[0]['x'])
-    print(x[0]['y'])
+    print(x[0]["x"])
+    print(x[0]["y"])
     print(len(x))
     print(len(r))
