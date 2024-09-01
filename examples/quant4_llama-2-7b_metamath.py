@@ -30,7 +30,7 @@ def main(lora_alpha=8, lora_rank=32, sample_size=128, seed=31):
     model_dtype = "bf16"
     dataset_name = "meta_math"
     config = dict(
-        model="llama",
+        model="q4llama",
         d=dataset_name,
         a=lora_alpha,
         r=lora_rank,
@@ -45,6 +45,7 @@ def main(lora_alpha=8, lora_rank=32, sample_size=128, seed=31):
             group="test",
             project="LoRA-GA in PEFT",
         )
+
     model, tokenizer = initialize_text_to_text_model(
         model_id, model_type, model_dtype, flash_attention=False
     )
@@ -72,12 +73,26 @@ def main(lora_alpha=8, lora_rank=32, sample_size=128, seed=31):
     )
     dataloader = torch.utils.data.DataLoader(temp_set, batch_size=peft_config.bsz)
 
+    """
+    regain the quant-model
+    """
+    quant_type = "nf4"
     named_grad = estimate_gradient(
         model=model,
         dataloader=dataloader,
         accelerator=accelerator,
-        quant_flag=False,
+        quant_flag=True,  # if you have GPU memory enough, you can also set quant_flag=Ture to acclerate estimate_gradient
+        origin_type="bf16",
+        quant_type=quant_type,
     )
+    del model
+    torch.cuda.empty_cache()
+
+    model_dtype = quant_type
+    model, tokenizer = initialize_text_to_text_model(
+        model_id, model_type, model_dtype, flash_attention=False
+    )
+
     if accelerator.is_local_main_process:
         print(peft_config)
     with LoraGAContext(model=model, named_grad=named_grad):
@@ -90,7 +105,7 @@ def main(lora_alpha=8, lora_rank=32, sample_size=128, seed=31):
     print("finish get_peft_model=================================================")
 
     model = train_text_to_text_model(
-        run_name=os.path.join("peft_test", wandb_name),
+        run_name=f"peft_test/{wandb_name}",
         train_dataset=train_set,
         valid_dataset=val_set,
         model=model,

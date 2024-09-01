@@ -4,34 +4,54 @@ import functools
 import os
 import pickle
 import logging
-
+import hashlib
 log = logging.getLogger(__name__)
 
 
-def cache_to_disk(root_datadir):
-    def decorator_cache(func):
+def cache_to_disk(root_datadir="data_cache"):
+    def decorator(func):
         @functools.wraps(func)
-        def wrapper_cache(*args, **kwargs):
+        def wrapper(*args, **kwargs):
             if not os.path.exists(root_datadir):
                 os.makedirs(root_datadir)
 
             func_name = func.__name__.replace("/", "")
-            cache_file = os.path.join(root_datadir, f"{func_name}.pkl")
+            cache_filename = root_datadir + "/" + f"{func_name}.pkl"
+            args_str = "_".join(map(str, args))
+            kwargs_str = "_".join(f"{k}={v}" for k, v in kwargs.items())
+            params_str = f"{args_str}_{kwargs_str}"
 
-            if os.path.exists(cache_file):
-                with open(cache_file, "rb") as f:
-                    log.info(f"Loading cached data for {func.__name__}")
+            # 对参数字符串进行哈希处理
+            params_hash = hashlib.md5(params_str.encode()).hexdigest()
+
+            # 将哈希值添加到函数名中
+            cache_filename = os.path.join(root_datadir, f"{func_name}_{params_hash}.pkl")
+            print("cache_filename =", cache_filename)
+
+            if os.path.exists(cache_filename):
+                with open(cache_filename, "rb") as f:
+                    print(f"Loading cached data for {func.__name__} {params_str}")
                     return pickle.load(f)
 
             result = func(*args, **kwargs)
-            with open(cache_file, "wb") as f:
+
+            print("caching " + cache_filename)
+            with open(cache_filename, "wb") as f:
                 pickle.dump(result, f)
-                log.info(f"Cached data for {func.__name__}")
+                print(f"Cached data for {func.__name__}")
+
+            hash_table_filename = os.path.join(root_datadir, "hash_table.txt")
+            if not os.path.exists(hash_table_filename):
+                with open(hash_table_filename, "w"):
+                    pass
+            with open(hash_table_filename, "a") as f:
+                f.write(f"{cache_filename}: {params_str}\n")
+
             return result
 
-        return wrapper_cache
+        return wrapper
 
-    return decorator_cache
+    return decorator
 
 
 @cache_to_disk("data_cache")
@@ -555,25 +575,3 @@ DATASET_MAP = {
     "codefeedback": load_codefeedback,
     "wizard_lm": load_wizardlm,
 }
-
-
-if __name__ == "__main__":
-    # for dataset in [load_emo, load_sst2, load_cola, load_qqp, load_mrpc, load_mnli]:
-    #     train_set, val_set, test_set = dataset()
-    #     print(train_set[0])
-    #     print(val_set[0])
-    #     print(test_set[0])
-    #     print()
-    # print(load_alpaca())
-    # for name, dataset in DATASET_MAP.items():
-    #     train_set, val_set, test_set = dataset()
-    #     print(name)
-    #     print(train_set[0])
-    #     print(val_set[0])
-    #     print(test_set[0])
-    #     print()
-    x, r, _ = load_wizardlm()
-    print(x[0]["x"])
-    print(x[0]["y"])
-    print(len(x))
-    print(len(r))

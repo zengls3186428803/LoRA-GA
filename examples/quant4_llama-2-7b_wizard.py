@@ -1,4 +1,5 @@
 import torch
+from fire import Fire
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 from peft import PeftModel, LoraGAConfig, get_peft_model
@@ -22,19 +23,28 @@ import wandb
 import os
 
 
-def main():
-    wandb.init(mode="disabled")
+def main(lora_alpha=8, lora_rank=32, sample_size=128, seed=31):
     accelerator = Accelerator()
     model_id = "meta-llama/Llama-2-7b-hf"
     model_type = "CausalLM"
     model_dtype = "bf16"
+    dataset_name = "wizard_lm"
     config = dict(
         model="q4llama",
-        a=8,
-        r=32,
-        s=128,
+        d=dataset_name,
+        a=lora_alpha,
+        r=lora_rank,
+        s=sample_size,
+        sd=seed,
     )
     wandb_name = "_".join([f"{k}={v}" for k, v in config.items()])
+    if accelerator.is_local_main_process:
+        wandb.init(
+            name=wandb_name,
+            mode="offline",
+            group="test",
+            project="LoRA-GA in PEFT",
+        )
 
     model, tokenizer = initialize_text_to_text_model(
         model_id, model_type, model_dtype, flash_attention=False
@@ -49,7 +59,6 @@ def main():
         iters=config["s"] // 2,
     )
 
-    dataset_name = "meta_math"
     dataset_func = DATASET_MAP[dataset_name]
     train_set, val_set, _ = dataset_func()
     if isinstance(train_set, list):
@@ -78,7 +87,7 @@ def main():
     )
     del model
     torch.cuda.empty_cache()
-    
+
     model_dtype = quant_type
     model, tokenizer = initialize_text_to_text_model(
         model_id, model_type, model_dtype, flash_attention=False
@@ -89,7 +98,7 @@ def main():
     with LoraGAContext(model=model, named_grad=named_grad):
         model = get_peft_model(model=model, peft_config=peft_config)
 
-    save_dir = os.path.join("./snapshot", wandb_name.replace("=", ""))
+    save_dir = os.path.join("./snapshot", wandb_name)
     if accelerator.is_local_main_process:
         print(model)
         save_loraga_model_init(model=model, save_dir=save_dir)
@@ -115,7 +124,7 @@ def main():
         learning_rate=2e-5,
         num_process=accelerator.num_processes,
         gradient_checkpointing=False,
-        seed=31,
+        seed=seed,
         training_args=dict(
             lr_scheduler_type="cosine",
             max_grad_norm=1.0,
@@ -133,4 +142,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    Fire(main)

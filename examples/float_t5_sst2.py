@@ -25,12 +25,13 @@ import os
 
 def main(lora_alpha=8, lora_rank=32, sample_size=128, seed=31):
     accelerator = Accelerator()
-    model_id = "meta-llama/Llama-2-7b-hf"
-    model_type = "CausalLM"
+    model_id = "t5-base"
+    model_type = "ConditionalGeneration"
     model_dtype = "bf16"
-    dataset_name = "meta_math"
+    dataset_name = "sst2"
+
     config = dict(
-        model="llama",
+        model="t5-base",
         d=dataset_name,
         a=lora_alpha,
         r=lora_rank,
@@ -97,16 +98,16 @@ def main(lora_alpha=8, lora_rank=32, sample_size=128, seed=31):
         tokenizer=tokenizer,
         model_type=model_type,
         num_train_epochs=1,
-        per_device_batch_size=1,
-        real_batch_size=128,
+        per_device_batch_size=32,
+        real_batch_size=32 * accelerator.num_processes,
         bf16=(model_dtype == "bf16"),
         eval_epochs=1,
-        early_stopping_patience=3,
-        max_length=1024,
+        early_stopping_patience=5,
+        max_length=128,
         logging_steps=1,
         use_loraplus=False,
-        loraplus_lr_ratio=None,
-        learning_rate=2e-5,
+        loraplus_lr_ratio=None,                      
+        learning_rate=1e-4,
         num_process=accelerator.num_processes,
         gradient_checkpointing=False,
         seed=seed,
@@ -120,7 +121,7 @@ def main(lora_alpha=8, lora_rank=32, sample_size=128, seed=31):
     if accelerator.is_local_main_process:
         save_loraga_model_final(model=model, save_dir=save_dir)
         model, tokenizer = initialize_text_to_text_model(
-            model_id, model_type, model_dtype, flash_attention=True
+            model_id, model_type, model_dtype, flash_attention=False
         )
         model = PeftModel.from_pretrained(model, save_dir)
         print(model)
