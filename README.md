@@ -78,12 +78,25 @@ Detailed usage(e.g. quantizaion model, api reference) see [Detailed usage](./doc
 
 1. [Training Llama2 7b on metamath QA](./examples/float_llama2-7b_metamath.py)
 
-2. [Training quantized Llama2 7b on metamath QA](./examples/quant_llama-2-7b_metamath.py)
+2. [Training quantized 4bit Llama2 7b on metamath QA](./examples/quant4_llama-2-7b_metamath.py)
+
+3. [Training quantized 8bit Llama2 7b on metamath QA](./examples/quant8_llama-2-7b_metamath.py)
+  
+4. [Training quantized 4bit Llama2 7b on Wizard-LM](./examples/quant4_llama-2-7b_wizard.py)
+
+5. [Training t5-base on sst2](./examples/float_t5_sst2.py)
 
 ### Multi-card training example
 
-This is an example of a single machine with 4 GPUs. If you want to use n GPUs in parallel, 
+This is an example of a single machine with 4 GPUs. If you want to use n GPUs in parallel,
 you need to modify the `accelerate_config.yaml` file.
+
+```bash
+CUDA_VISIBLE_DEVICES="0,1,2,3" python -m accelerate.commands.launch \
+--main_process_port $(shuf -i 10000-60000 -n 1) \
+--config_file examples/accelerate_config.yaml \
+{python_file_path}
+```
 
 ```bash
 CUDA_VISIBLE_DEVICES="0,1,2,3" python -m accelerate.commands.launch --main_process_port $(shuf -i 10000-60000 -n 1) --config_file examples/accelerate_config.yaml examples/float_llama2-7b_metamath.py
