@@ -76,20 +76,26 @@ Detailed usage(e.g. quantizaion model, api reference) see [Detailed usage](./doc
 
 ## Examples
 
-1. [Training Llama2 7b on metamath QA](./examples/float_llama2-7b_metamath.py)
+```bash
+python {python_file_path}
+```
 
-2. [Training quantized 4bit Llama2 7b on metamath QA](./examples/quant4_llama-2-7b_metamath.py)
+```bash
+python ./examples/float_llama2-7b_metamath.py
+```
 
-3. [Training quantized 8bit Llama2 7b on metamath QA](./examples/quant8_llama-2-7b_metamath.py)
-  
-4. [Training quantized 4bit Llama2 7b on Wizard-LM](./examples/quant4_llama-2-7b_wizard.py)
-
-5. [Training t5-base on sst2](./examples/float_t5_sst2.py)
+| example name                                                                                 | python_file_path                         |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| [Training Llama2 7b on metamath QA](./examples/float_llama2-7b_metamath.py)                  | ./examples/float_llama2-7b_metamath.py   |
+| [Training quantized 4bit Llama2 7b on metamath QA](./examples/quant4_llama-2-7b_metamath.py) | ./examples/quant4_llama-2-7b_metamath.py |
+| [Training quantized 8bit Llama2 7b on metamath QA](./examples/quant8_llama-2-7b_metamath.py) | ./examples/quant8_llama-2-7b_metamath.py |
+| [Training quantized 4bit Llama2 7b on Wizard-LM](./examples/quant4_llama-2-7b_wizard.py)     | ./examples/quant4_llama-2-7b_wizard.py   |
+| [Training t5-base on sst2](./examples/float_t5_sst2.py)                                      | ./examples/float_t5_sst2.py              |
 
 ### Multi-card training example
 
 This is an example of a single machine with 4 GPUs. If you want to use n GPUs in parallel,
-you need to modify the `accelerate_config.yaml` file.
+you need to modify the `accelerate_config.yaml` file (or use `accelerate config` to regenerate the configuration file).
 
 ```bash
 CUDA_VISIBLE_DEVICES="0,1,2,3" python -m accelerate.commands.launch \
@@ -98,8 +104,13 @@ CUDA_VISIBLE_DEVICES="0,1,2,3" python -m accelerate.commands.launch \
 {python_file_path}
 ```
 
+ you can use command like this
+
 ```bash
-CUDA_VISIBLE_DEVICES="0,1,2,3" python -m accelerate.commands.launch --main_process_port $(shuf -i 10000-60000 -n 1) --config_file examples/accelerate_config.yaml examples/float_llama2-7b_metamath.py
+CUDA_VISIBLE_DEVICES="0,1,2,3" python -m accelerate.commands.launch \
+--main_process_port $(shuf -i 10000-60000 -n 1) \
+--config_file examples/accelerate_config.yaml \
+examples/float_llama2-7b_metamath.py
 ```
 
 ## Note on Usage
